@@ -7,6 +7,7 @@ const CTX = 'TasksService';
 export const tasksService = {
     async getAll(): Promise<Task[]> {
         const userId = await getUserId();
+        if (!userId) return [];
         log(CTX, 'getAll');
 
         const { data, error } = await supabase
@@ -25,6 +26,7 @@ export const tasksService = {
 
     async getBySubject(subjectId: string): Promise<Task[]> {
         const userId = await getUserId();
+        if (!userId) return [];
         log(CTX, 'getBySubject', { subjectId });
 
         const { data, error } = await supabase
@@ -44,6 +46,7 @@ export const tasksService = {
 
     async create(input: { subjectId: string; folderId: string | null; title: string; completed: boolean; dueDate?: Date }): Promise<Task> {
         const userId = await getUserId();
+        if (!userId) throw new Error('No authenticated user');
         log(CTX, 'create', input);
 
         const { data, error } = await supabase

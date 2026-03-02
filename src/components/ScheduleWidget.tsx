@@ -1,30 +1,27 @@
 import { useState, useEffect } from 'react';
 import { getCurrentClass, getNextClass, getDayName, formatTimeRemaining } from '../data/schedule';
-import { ScheduleClass } from '../types';
 import { useApp } from '../context/AppContext';
 
 export function ScheduleWidget() {
   const { state, dispatch, getActiveSchedule } = useApp();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [currentClass, setCurrentClass] = useState<ScheduleClass | null>(null);
-  const [nextClass, setNextClass] = useState<{ class: ScheduleClass; minutesUntil: number } | null>(null);
 
   // Get schedule from active semester
   const schedule = getActiveSchedule();
   const activeSemester = state.semesters.find(s => s.isActive);
 
-  useEffect(() => {
-    const updateScheduleState = () => {
-      setCurrentTime(new Date());
-      setCurrentClass(getCurrentClass(schedule));
-      setNextClass(getNextClass(schedule));
-    };
+  // Compute current/next class during render (no setState needed)
+  const currentClass = getCurrentClass(schedule);
+  const nextClass = getNextClass(schedule);
 
-    const timer = setInterval(updateScheduleState, 1000);
-    updateScheduleState();
+  // Only update the clock every second — no other state changes in the effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
 
     return () => clearInterval(timer);
-  }, [schedule]);
+  }, []);
 
   const getStatus = () => {
     if (currentClass) {

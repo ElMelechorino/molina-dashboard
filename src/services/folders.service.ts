@@ -7,6 +7,7 @@ const CTX = 'FoldersService';
 export const foldersService = {
     async getBySubject(subjectId: string): Promise<Folder[]> {
         const userId = await getUserId();
+        if (!userId) return [];
         log(CTX, 'getBySubject', { subjectId });
 
         const { data, error } = await supabase
@@ -26,6 +27,7 @@ export const foldersService = {
 
     async getAll(): Promise<Folder[]> {
         const userId = await getUserId();
+        if (!userId) return [];
         log(CTX, 'getAll');
 
         const { data, error } = await supabase
@@ -44,6 +46,7 @@ export const foldersService = {
 
     async create(input: { subjectId: string; parentId: string | null; name: string }): Promise<Folder> {
         const userId = await getUserId();
+        if (!userId) throw new Error('No authenticated user');
         log(CTX, 'create', input);
 
         const { data, error } = await supabase

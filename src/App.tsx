@@ -23,6 +23,7 @@ import { log, logError } from './lib/logger';
 function AppContent() {
   const { state, dispatch } = useApp();
   const [authChecked, setAuthChecked] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -59,8 +60,12 @@ function AppContent() {
           tasks: tasks.length,
           prompts: prompts.length,
         });
+
+        setDataLoaded(true);
       } catch (err) {
         logError('App', 'Failed to load data', err);
+        // Still mark data as loaded so the UI isn't stuck on loading
+        setDataLoaded(true);
       }
     };
 
@@ -82,16 +87,17 @@ function AppContent() {
         await loadAllData();
       } else if (event === 'SIGNED_OUT') {
         dispatch({ type: "LOGOUT" });
+        setDataLoaded(false);
       }
 
       setAuthChecked(true);
     });
 
-    // With persistSession: false, if there's no stored session,
-    // onAuthStateChange may not fire INITIAL_SESSION. Mark auth as checked after a short delay.
+    // If onAuthStateChange doesn't fire (e.g., no stored session), mark checked.
     const timeout = setTimeout(() => {
       setAuthChecked(true);
-    }, 500);
+      setDataLoaded(true);
+    }, 1500);
 
     return () => {
       subscription.unsubscribe();
@@ -99,8 +105,8 @@ function AppContent() {
     };
   }, [dispatch]);
 
-  // Show nothing while checking auth state (prevents login flash)
-  if (!authChecked) {
+  // Show loading while checking auth or loading data
+  if (!authChecked || (state.user && !dataLoaded)) {
     return (
       <div className="h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors">
         <div className="text-center">

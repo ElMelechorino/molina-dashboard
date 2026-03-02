@@ -92,23 +92,13 @@ export function SemesterManager() {
 
     setIsCreatingSubject(true);
     try {
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('La conexión tardó demasiado tiempo en responder')), 10000)
-      );
+      await subjectsService.create({
+        semesterId,
+        name: newSubjectName.trim(),
+        color: newSubjectColor,
+      });
 
-      await Promise.race([
-        subjectsService.create({
-          semesterId,
-          name: newSubjectName.trim(),
-          color: newSubjectColor,
-        }),
-        timeoutPromise
-      ]);
-
-      await Promise.race([
-        reloadData(),
-        timeoutPromise
-      ]);
+      await reloadData();
 
       setNewSubjectName('');
       setNewSubjectColor(SUBJECT_COLORS[0]);

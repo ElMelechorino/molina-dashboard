@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useMemo, ReactNode } from 'react';
 import {
   AppState, User, Semester, Subject, Folder, Note, Task, Prompt, ViewMode, ScheduleClass
 } from '../types';
@@ -83,6 +83,8 @@ function appReducer(state: AppState, action: Action): AppState {
   }
 }
 
+const EMPTY_SCHEDULE: ScheduleClass[] = [];
+
 interface AppContextType {
   state: AppState;
   dispatch: React.Dispatch<Action>;
@@ -94,11 +96,16 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
-  // Get the schedule of the active semester
-  const getActiveSchedule = (): ScheduleClass[] => {
+  // Memoize the schedule to avoid creating a new array reference on every render.
+  // This prevents infinite re-render loops in ScheduleWidget.
+  const activeSchedule = useMemo(() => {
     const activeSemester = state.semesters.find(s => s.isActive);
-    return activeSemester?.schedule || [];
-  };
+    return activeSemester?.schedule ?? EMPTY_SCHEDULE;
+  }, [state.semesters]);
+
+  const getActiveSchedule = useMemo(() => {
+    return () => activeSchedule;
+  }, [activeSchedule]);
 
   // Apply dark mode immediately on mount based on initial state
   React.useEffect(() => {

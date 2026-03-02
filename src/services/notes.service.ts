@@ -7,6 +7,7 @@ const CTX = 'NotesService';
 export const notesService = {
     async getAll(): Promise<Note[]> {
         const userId = await getUserId();
+        if (!userId) return [];
         log(CTX, 'getAll');
 
         const { data, error } = await supabase
@@ -25,6 +26,7 @@ export const notesService = {
 
     async getBySubject(subjectId: string): Promise<Note[]> {
         const userId = await getUserId();
+        if (!userId) return [];
         log(CTX, 'getBySubject', { subjectId });
 
         const { data, error } = await supabase
@@ -44,6 +46,7 @@ export const notesService = {
 
     async create(input: { subjectId: string; folderId: string | null; title: string; content: string }): Promise<Note> {
         const userId = await getUserId();
+        if (!userId) throw new Error('No authenticated user');
         log(CTX, 'create', input);
 
         const now = new Date().toISOString();

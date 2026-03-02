@@ -7,6 +7,7 @@ const CTX = 'SemestersService';
 export const semestersService = {
     async getAll(): Promise<Semester[]> {
         const userId = await getUserId();
+        if (!userId) return [];
         log(CTX, 'getAll', { userId });
 
         const { data, error } = await supabase
@@ -25,6 +26,7 @@ export const semestersService = {
 
     async create(input: { name: string; isActive: boolean; schedule: ScheduleClass[] }): Promise<Semester> {
         const userId = await getUserId();
+        if (!userId) throw new Error('No authenticated user');
         log(CTX, 'create', input);
 
         const { data, error } = await supabase

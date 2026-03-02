@@ -7,6 +7,7 @@ const CTX = 'PromptsService';
 export const promptsService = {
     async getAll(): Promise<Prompt[]> {
         const userId = await getUserId();
+        if (!userId) return [];
         log(CTX, 'getAll');
 
         const { data, error } = await supabase
@@ -25,6 +26,7 @@ export const promptsService = {
 
     async create(input: { title: string; content: string; category: string }): Promise<Prompt> {
         const userId = await getUserId();
+        if (!userId) throw new Error('No authenticated user');
         log(CTX, 'create', input);
 
         const { data, error } = await supabase

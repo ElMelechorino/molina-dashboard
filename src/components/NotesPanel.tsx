@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { notesService } from '../services/notes.service';
-import { Note } from '../types';
 import { logError } from '../lib/logger';
 
 interface NotesPanelProps {
@@ -10,9 +9,10 @@ interface NotesPanelProps {
 
 export function NotesPanel({ subjectId }: NotesPanelProps) {
   const { state, dispatch } = useApp();
-  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [noteContent, setNoteContent] = useState('');
   const [noteTitle, setNoteTitle] = useState('');
+  const isSavingRef = useRef(false);
 
   const notes = state.notes.filter(n => {
     if (state.activeFolderId) {
@@ -21,42 +21,51 @@ export function NotesPanel({ subjectId }: NotesPanelProps) {
     return n.subjectId === subjectId;
   });
 
+  // Derive selectedNote from state by ID (avoids stale object references)
+  const selectedNote = selectedNoteId
+    ? notes.find(n => n.id === selectedNoteId) ?? null
+    : null;
+
+  // Sync local editor fields when user selects a different note
   useEffect(() => {
     if (selectedNote) {
-      setNoteContent(selectedNote.content);
       setNoteTitle(selectedNote.title);
+      setNoteContent(selectedNote.content);
     }
-  }, [selectedNote]);
+  }, [selectedNoteId]); // Only when the ID changes, not the object reference
 
-  // Auto-save — only when user has actually changed title or content
+  // Auto-save — debounced, with guard against concurrent saves
   useEffect(() => {
-    if (selectedNote) {
-      // Skip save if nothing has changed from the original note values
-      if (noteTitle === selectedNote.title && noteContent === selectedNote.content) {
-        return;
+    if (!selectedNoteId || isSavingRef.current) return;
+
+    const note = notes.find(n => n.id === selectedNoteId);
+    if (!note) return;
+
+    // Skip save if nothing has changed
+    if (noteTitle === note.title && noteContent === note.content) return;
+
+    const timer = setTimeout(async () => {
+      isSavingRef.current = true;
+      try {
+        await notesService.update({
+          ...note,
+          title: noteTitle,
+          content: noteContent,
+        });
+
+        // Reload notes from DB to stay in sync
+        const allNotes = await notesService.getAll();
+        dispatch({ type: 'SET_NOTES', payload: allNotes });
+      } catch (err) {
+        logError('NotesPanel', 'Auto-save failed', err);
+      } finally {
+        isSavingRef.current = false;
       }
+    }, 1000);
 
-      const timer = setTimeout(async () => {
-        try {
-          const updatedNote: Note = {
-            ...selectedNote,
-            title: noteTitle,
-            content: noteContent,
-            updatedAt: new Date(),
-          };
-
-          await notesService.update(updatedNote);
-
-          // Update local state
-          const allNotes = await notesService.getAll();
-          dispatch({ type: 'SET_NOTES', payload: allNotes });
-        } catch (err) {
-          logError('NotesPanel', 'Auto-save failed', err);
-        }
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [noteContent, noteTitle, selectedNote, dispatch]);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noteContent, noteTitle]);
 
   const handleCreateNote = async () => {
     try {
@@ -69,7 +78,7 @@ export function NotesPanel({ subjectId }: NotesPanelProps) {
 
       const allNotes = await notesService.getAll();
       dispatch({ type: 'SET_NOTES', payload: allNotes });
-      setSelectedNote(note);
+      setSelectedNoteId(note.id);
       setNoteTitle('Nueva nota');
       setNoteContent('');
     } catch (err: any) {
@@ -84,8 +93,8 @@ export function NotesPanel({ subjectId }: NotesPanelProps) {
         await notesService.remove(noteId);
         const allNotes = await notesService.getAll();
         dispatch({ type: 'SET_NOTES', payload: allNotes });
-        if (selectedNote?.id === noteId) {
-          setSelectedNote(null);
+        if (selectedNoteId === noteId) {
+          setSelectedNoteId(null);
         }
       } catch (err: any) {
         logError('NotesPanel', 'Delete failed', err);
@@ -140,8 +149,8 @@ export function NotesPanel({ subjectId }: NotesPanelProps) {
             notes.map((note) => (
               <div
                 key={note.id}
-                onClick={() => setSelectedNote(note)}
-                className={`p-3 rounded-xl cursor-pointer transition-all ${selectedNote?.id === note.id
+                onClick={() => setSelectedNoteId(note.id)}
+                className={`p-3 rounded-xl cursor-pointer transition-all ${selectedNoteId === note.id
                   ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-200 dark:border-blue-800/50'
                   : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 border-slate-200 dark:border-slate-700'
                   } border`}

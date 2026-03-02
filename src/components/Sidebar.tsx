@@ -25,9 +25,9 @@ export function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v:
     } catch (e) {
       logError('Sidebar', 'Logout error', e);
     } finally {
-      // Clear any residual auth data from storage
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('sb-')) localStorage.removeItem(key);
+      // Clear auth data from sessionStorage (where the client stores it)
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith('sb-')) sessionStorage.removeItem(key);
       });
       dispatch({ type: 'LOGOUT' });
       window.location.href = '/';

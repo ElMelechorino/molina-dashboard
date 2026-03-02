@@ -12,11 +12,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 /**
- * Returns the current authenticated user's ID.
+ * Returns the current authenticated user's ID, or null if not authenticated.
  * Tries getSession() first (fast, in-memory), falls back to getUser().
- * Throws if not authenticated.
  */
-export async function getUserId(): Promise<string> {
+export async function getUserId(): Promise<string | null> {
   // Fast path: read from in-memory session
   const { data: { session } } = await supabase.auth.getSession();
   if (session?.user?.id) {
@@ -26,7 +25,7 @@ export async function getUserId(): Promise<string> {
   // Fallback: network call
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) {
-    throw new Error("No authenticated user");
+    return null;
   }
   return user.id;
 }

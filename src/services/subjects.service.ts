@@ -7,6 +7,7 @@ const CTX = 'SubjectsService';
 export const subjectsService = {
     async getBySemester(semesterId: string): Promise<Subject[]> {
         const userId = await getUserId();
+        if (!userId) return [];
         log(CTX, 'getBySemester', { semesterId });
 
         const { data, error } = await supabase
@@ -26,6 +27,7 @@ export const subjectsService = {
 
     async getAll(): Promise<Subject[]> {
         const userId = await getUserId();
+        if (!userId) return [];
         log(CTX, 'getAll');
 
         const { data, error } = await supabase
@@ -44,6 +46,7 @@ export const subjectsService = {
 
     async create(input: { semesterId: string; name: string; color: string }): Promise<Subject> {
         const userId = await getUserId();
+        if (!userId) throw new Error('No authenticated user');
         log(CTX, 'create', input);
 
         const { data, error } = await supabase
