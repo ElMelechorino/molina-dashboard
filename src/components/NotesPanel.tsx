@@ -47,15 +47,15 @@ export function NotesPanel({ subjectId }: NotesPanelProps) {
     const timer = setTimeout(async () => {
       isSavingRef.current = true;
       try {
-        await notesService.update({
+        const updatedNote = await notesService.update({
           ...note,
           title: noteTitle,
           content: noteContent,
         });
 
-        // Reload notes from DB to stay in sync
-        const allNotes = await notesService.getAll();
-        dispatch({ type: 'SET_NOTES', payload: allNotes });
+        // Update local state without full reload
+        const newNotes = state.notes.map(n => n.id === selectedNoteId ? updatedNote : n);
+        dispatch({ type: 'SET_NOTES', payload: newNotes });
       } catch (err) {
         logError('NotesPanel', 'Auto-save failed', err);
       } finally {

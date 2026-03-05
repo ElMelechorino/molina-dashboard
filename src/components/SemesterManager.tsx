@@ -23,6 +23,7 @@ export function SemesterManager() {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [editSubjectName, setEditSubjectName] = useState('');
   const [editSubjectColor, setEditSubjectColor] = useState(SUBJECT_COLORS[0]);
+  const [isActivating, setIsActivating] = useState(false);
 
   const reloadData = async () => {
     try {
@@ -58,12 +59,14 @@ export function SemesterManager() {
   };
 
   const handleSetActive = async (semester: Semester) => {
+    if (isActivating) return;
+    setIsActivating(true);
     try {
+      log('SemesterManager', 'Activating semester', { id: semester.id });
       // Deactivate all
-      for (const s of state.semesters) {
-        if (s.isActive && s.id !== semester.id) {
-          await semestersService.update({ ...s, isActive: false });
-        }
+      const activeSemesters = state.semesters.filter(s => s.isActive && s.id !== semester.id);
+      for (const s of activeSemesters) {
+        await semestersService.update({ ...s, isActive: false });
       }
       // Activate selected
       await semestersService.update({ ...semester, isActive: true });
@@ -72,6 +75,8 @@ export function SemesterManager() {
     } catch (err: any) {
       logError('SemesterManager', 'Set active failed', err);
       alert('Error al activar semestre: ' + (err.message || 'Desconocido'));
+    } finally {
+      setIsActivating(false);
     }
   };
 

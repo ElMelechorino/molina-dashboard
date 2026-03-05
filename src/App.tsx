@@ -93,15 +93,25 @@ function AppContent() {
       setAuthChecked(true);
     });
 
-    // If onAuthStateChange doesn't fire (e.g., no stored session), mark checked.
-    const timeout = setTimeout(() => {
+    // Check initial session immediately
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        log('App', 'Initial session found', { userId: session.user.id });
+        dispatch({
+          type: "LOGIN",
+          payload: {
+            id: session.user.id,
+            email: session.user.email ?? "",
+            isLoggedIn: true,
+          },
+        });
+        loadAllData();
+      }
       setAuthChecked(true);
-      setDataLoaded(true);
-    }, 1500);
+    });
 
     return () => {
       subscription.unsubscribe();
-      clearTimeout(timeout);
     };
   }, [dispatch]);
 
