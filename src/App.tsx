@@ -46,72 +46,84 @@ function AppContent() {
         dispatch({ type: 'SET_TASKS', payload: tasks });
         dispatch({ type: 'SET_PROMPTS', payload: prompts });
 
-        // Set active semester
         const active = semesters.find(s => s.isActive);
         if (active) {
           dispatch({ type: 'SET_ACTIVE_SEMESTER', payload: active.id });
         }
 
-        log('App', 'All data loaded successfully', {
-          semesters: semesters.length,
-          subjects: subjects.length,
-          folders: folders.length,
-          notes: notes.length,
-          tasks: tasks.length,
-          prompts: prompts.length,
-        });
-
-        setDataLoaded(true);
+        log('App', 'All data loaded successfully');
       } catch (err) {
         logError('App', 'Failed to load data', err);
-        // Still mark data as loaded so the UI isn't stuck on loading
+      } finally {
         setDataLoaded(true);
       }
     };
+
+    let hasLoadedInitialSession = false;
+
+    const handleSession = async (session: any) => {
+      if (session?.user) {
+        dispatch({
+          type: "LOGIN",
+          payload: {
+            id: session.user.id,
+            email: session.user.email ?? "",
+            isLoggedIn: true,
+          },
+        });
+        await loadAllData();
+      } else {
+        dispatch({ type: "LOGOUT" });
+        setDataLoaded(false);
+      }
+      setAuthChecked(true);
+      hasLoadedInitialSession = true;
+    };
+
+    // Fast initial check with a timeout to prevent infinite hanging
+    Promise.race([
+      supabase.auth.getSession(),
+      new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Auth timeout')), 3000))
+    ])
+      .then(({ data: { session } }) => {
+        if (!hasLoadedInitialSession) handleSession(session);
+      })
+      .catch(() => {
+        // Timeout or error reading session: default to unauthenticated state
+        if (!hasLoadedInitialSession) handleSession(null);
+      });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       log('App', `Auth event: ${event}`, { userId: session?.user?.id });
-
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-        dispatch({
-          type: "LOGIN",
-          payload: {
-            id: session.user.id,
-            email: session.user.email ?? "",
-            isLoggedIn: true,
-          },
-        });
-
-        await loadAllData();
+      if (event === 'SIGNED_IN') {
+        if (!hasLoadedInitialSession) handleSession(session);
+        else if (session?.user) {
+          dispatch({
+            type: "LOGIN",
+            payload: {
+              id: session.user.id,
+              email: session.user.email ?? "",
+              isLoggedIn: true,
+            },
+          });
+          loadAllData();
+        }
       } else if (event === 'SIGNED_OUT') {
-        dispatch({ type: "LOGOUT" });
-        setDataLoaded(false);
+        handleSession(null);
       }
-
-      setAuthChecked(true);
     });
 
-    // Check initial session immediately
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        log('App', 'Initial session found', { userId: session.user.id });
-        dispatch({
-          type: "LOGIN",
-          payload: {
-            id: session.user.id,
-            email: session.user.email ?? "",
-            isLoggedIn: true,
-          },
-        });
-        loadAllData();
-      }
-      setAuthChecked(true);
-    });
+    // Ultimate fallback if nothing has updated correctly after 5 seconds
+    const safetyTimeout = setTimeout(() => {
+      if (!authChecked) setAuthChecked(true);
+      setDataLoaded(true);
+    }, 5000);
 
     return () => {
       subscription.unsubscribe();
+      clearTimeout(safetyTimeout);
     };
   }, [dispatch]);
 
