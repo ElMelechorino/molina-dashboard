@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import { Zap, Brain, Puzzle, Target, Calculator, Lightbulb, MessageCircle, Bot } from 'lucide-react';
 
 
@@ -376,7 +379,7 @@ export function ChatView() {
               `}
             >
               <div className="prose dark:prose-invert prose-sm max-w-none break-words leading-relaxed [&>*:first-child]:!mt-0 [&>*:last-child]:!mb-0 [&_p]:!my-1 [&_ul]:!my-1 [&_ol]:!my-1 [&_li]:!my-0">
-                <ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
                   {msg.content}
                 </ReactMarkdown>
               </div>

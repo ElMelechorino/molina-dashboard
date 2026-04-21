@@ -37,3 +37,11 @@
 .dark * {
   scrollbar-color: #334155 transparent;
 }
+
+/* KaTeX dark mode */
+.dark .katex {
+  color: #e2e8f0;
+}
+.dark .katex-display {
+  color: #e2e8f0;
+}
