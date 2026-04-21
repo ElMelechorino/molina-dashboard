@@ -20,10 +20,10 @@ interface ModeOption {
 }
 
 // ── Constants & API Config ─────────────────────────────────────────────
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_TOKEN || '';
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_TOKEN || '';
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 
 const GLOBAL_SUFFIX = '\n\nResponde de forma concisa, sin repetir información y sin añadir contenido innecesario.';
@@ -287,7 +287,7 @@ export function ChatView() {
       
       // Comprobar la ausencia de claves API
       if (!GEMINI_API_KEY && !GROQ_API_KEY) {
-         errorMsg = '⚠️ Error de configuración: No se encontraron las claves de API (VITE_GEMINI_API_KEY / VITE_GROQ_API_KEY) en las variables de entorno.';
+         errorMsg = '⚠️ Error de configuración: No se encontraron las claves de API (VITE_GEMINI_TOKEN / VITE_GROQ_TOKEN) en las variables de entorno.';
       } else if (error?.message) {
          errorMsg = `⚠️ Ocurrió un error al consultar la IA: ${error.message}`;
       }
